@@ -6,7 +6,10 @@ import QuizPanel from "./components/QuizPanel.jsx";
 
 // Reads the backend URL from an environment variable so the same build
 // works locally and in production (set VITE_API_URL when deploying).
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API_URL = 
+  import.meta.env.VITE_API_BASE_URL || 
+  import.meta.env.VITE_API_URL || 
+  "http://localhost:5001";
 
 export default function App() {
   const [result, setResult] = useState(null); // { summary, quiz }
