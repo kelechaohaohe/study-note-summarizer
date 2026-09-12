@@ -11,15 +11,32 @@ const API_URL =
   import.meta.env.VITE_API_URL || 
   "http://localhost:5001";
 
+const LOADING_STEPS = [
+  "Parsing study notes and document content...",
+  "Connecting to Google Gemini API...",
+  "Analyzing key takeaways and generating summary...",
+  "Building multiple-choice questions & explanations...",
+  "Finalizing your study package..."
+];
+
 export default function App() {
   const [result, setResult] = useState(null); // { summary, quiz }
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState("");
 
   async function handleGenerate({ text, file, quizCount }) {
     setIsLoading(true);
+    setLoadingStep(0);
     setError("");
     setResult(null);
+
+    const intervalId = setInterval(() => {
+      setLoadingStep((prev) => {
+        if (prev < LOADING_STEPS.length - 1) return prev + 1;
+        return prev;
+      });
+    }, 1500);
 
     try {
       let response;
@@ -51,6 +68,7 @@ export default function App() {
     } catch (err) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
+      clearInterval(intervalId);
       setIsLoading(false);
     }
   }
@@ -62,7 +80,13 @@ export default function App() {
         <p>Paste your notes or upload a PDF to get an instant summary and self-test quiz.</p>
       </header>
 
-      <UploadForm onGenerate={handleGenerate} isLoading={isLoading} />
+      <UploadForm onGenerate={handleGenerate} isLoading={isLoading} loadingText={LOADING_STEPS[loadingStep]} />
+
+      {isLoading && (
+        <div className="loading-status">
+          <p>{LOADING_STEPS[loadingStep]}</p>
+        </div>
+      )}
 
       {error && <p className="error">{error}</p>}
 
