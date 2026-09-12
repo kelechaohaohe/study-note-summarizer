@@ -1,11 +1,10 @@
 // Entry point for the Express server. Wires up middleware and routes.
 
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import summarizeRoute from "./routes/summarize.js";
-
-dotenv.config();
+import summarizeRouter from "./routes/summarize.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -26,7 +25,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // Mount the main feature route under /api.
-app.use("/api", summarizeRoute);
+app.use("/api", summarizeRouter);
 
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
