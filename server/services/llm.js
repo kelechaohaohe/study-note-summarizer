@@ -1,9 +1,6 @@
-// All logic related to talking to the LLM (Google Gemini API via Google AI Studio) lives here.
+import { GoogleGenAI } from "@google/genai";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-// The Gemini SDK needs the API key passed explicitly (no auto env lookup).
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 /**
  * Builds the prompt that instructs the model exactly how to behave.
@@ -30,7 +27,7 @@ Rules:
 - Generate exactly ${quizCount} quiz questions.
 - Each question must have exactly 4 options.
 - "correctIndex" is the zero-based index of the correct option.
-- Base every question strictly on the provided notes — do not invent facts.
+- Base every question strictly on the provided notes, do not invent facts.
 - Return raw JSON only. Do not wrap it in \`\`\`json code fences.
 
 Notes:
@@ -41,28 +38,19 @@ ${text}
 
 /**
  * Calls the Gemini API and returns a parsed { summary, quiz } object.
- * Retries once if the model's response isn't valid JSON, per the project
- * plan's "basic validation" requirement.
- *
- * @param {string} text - Raw notes text extracted from the user's input.
- * @param {number} quizCount - How many quiz questions to generate.
- * @returns {Promise<{summary: string, quiz: Array}>}
+ * Retries once if the model's response isn't valid JSON.
  */
 export async function generateSummaryAndQuiz(text, quizCount = 5) {
-  // gemini-2.5-flash is the free-tier-friendly model
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    generationConfig: {
-      responseMimeType: "application/json",
-    },
-  });
-
   const prompt = buildPrompt(text, quizCount);
 
-  // Try up to twice: once normally, once more if parsing/shape fails.
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const result = await model.generateContent(prompt);
-    const rawText = result.response.text().trim();
+    const result = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: prompt,
+      config: { responseMimeType: "application/json" },
+    });
+
+    const rawText = result.text.trim();
 
     try {
       const parsed = JSON.parse(stripCodeFences(rawText));
@@ -70,12 +58,8 @@ export async function generateSummaryAndQuiz(text, quizCount = 5) {
       return parsed;
     } catch (err) {
       if (attempt === 2) {
-        // Both attempts failed, surface a clear, catchable error.
-        throw new Error(
-          "The AI did not return valid JSON after 2 attempts: " + err.message
-        );
+        throw new Error("The AI did not return valid JSON after 2 attempts: " + err.message);
       }
-      // Otherwise, loop again for a second attempt.
     }
   }
 }
@@ -89,8 +73,7 @@ function stripCodeFences(raw) {
 }
 
 /**
- * Throws if the parsed object doesn't match the shape we promised
- * the frontend in the API design (Section 5 of the project plan).
+ * Throws if the parsed object doesn't match the shape we promised the frontend.
  */
 function validateShape(parsed, quizCount) {
   if (typeof parsed.summary !== "string" || !Array.isArray(parsed.quiz)) {
