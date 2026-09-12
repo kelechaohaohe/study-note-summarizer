@@ -1,7 +1,7 @@
 // Defines POST /api/summarize
 
 import { Router } from "express";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import { upload } from "../middleware/upload.js";
 import { generateSummaryAndQuiz } from "../services/llm.js";
 
@@ -17,8 +17,10 @@ router.post("/summarize", upload.single("file"), async (req, res) => {
     // If a file was uploaded, extract its text instead of using req.body.text.
     if (req.file) {
       if (req.file.mimetype === "application/pdf") {
-        const data = await pdfParse(req.file.buffer);
-        text = data.text;
+        const parser = new PDFParse({ data: req.file.buffer });
+        const result = await parser.getText();
+        text = result.text;
+        await parser.destroy();
       } else {
         // text/plain
         text = req.file.buffer.toString("utf-8");
