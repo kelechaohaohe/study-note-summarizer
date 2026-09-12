@@ -31,25 +31,22 @@ export default function QuizPanel({ quiz }) {
             <div className="options">
               {q.options.map((option, optIndex) => {
                 let className = "option";
+                let icon = null;
                 if (hasAnswered) {
-                  if (optIndex === q.correctIndex) {
+                    if (optIndex === q.correctIndex) {
                     className += " correct";
-                  } else if (optIndex === selected) {
+                    icon = "✓ ";
+                    } else if (optIndex === selected) {
                     className += " incorrect";
-                  }
+                    icon = "✗ ";
+                    }
                 }
                 return (
-                  <button
-                    key={optIndex}
-                    type="button"
-                    className={className}
-                    onClick={() => selectAnswer(qIndex, optIndex)}
-                    disabled={hasAnswered}
-                  >
-                    {option}
-                  </button>
+                    <button key={optIndex} type="button" className={className} onClick={() => selectAnswer(qIndex, optIndex)} disabled={hasAnswered}>
+                    {icon}{option}
+                    </button>
                 );
-              })}
+            })}
             </div>
             {hasAnswered && (
               <p className="feedback">
