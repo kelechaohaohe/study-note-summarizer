@@ -8,9 +8,8 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
  * enough to parse programmatically.
  */
 function buildPrompt(text, quizCount) {
-  return `You are an assistant that helps students study.
-Given the study notes below, return ONLY valid JSON (no markdown fences,
-no commentary, no extra text) matching exactly this shape:
+  return `You are an expert tutor helping students study.
+Given the study notes below, return ONLY valid JSON matching exactly this shape:
 
 {
   "summary": "A concise, well-organized summary of the notes (150-250 words).",
@@ -18,17 +17,20 @@ no commentary, no extra text) matching exactly this shape:
     {
       "question": "string",
       "options": ["string", "string", "string", "string"],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "explanation": "string"
     }
   ]
 }
 
 Rules:
-- Generate exactly ${quizCount} quiz questions.
-- Each question must have exactly 4 options.
-- "correctIndex" is the zero-based index of the correct option.
-- Base every question strictly on the provided notes, do not invent facts.
-- Return raw JSON only. Do not wrap it in \`\`\`json code fences.
+- Generate exactly ${quizCount} quiz questions based on the notes.
+- Each question must have 4 options and a zero-based correctIndex.
+- "explanation" MUST be 2-3 sentences. It MUST explain:
+  1) The core underlying concept behind the correct answer.
+  2) Why the key distractors (incorrect choices) are wrong or invalid in this context.
+- NEVER return generic statements like "The correct answer is X". Provide actual conceptual reasoning using broader computer science knowledge when helpful.
+- Return raw JSON only (no markdown code fences).
 
 Notes:
 """
@@ -47,7 +49,11 @@ export async function generateSummaryAndQuiz(text, quizCount = 5) {
     const result = await ai.models.generateContent({
       model: "gemini-3.6-flash",
       contents: prompt,
-      config: { responseMimeType: "application/json" },
+      config: { 
+        responseMimeType: "application/json",
+        temperature: 0.9,
+        thinkingConfig: { thinkingLevel: "MINIMAL" },
+      },
     });
 
     const rawText = result.text.trim();
@@ -84,9 +90,11 @@ function validateShape(parsed, quizCount) {
       typeof q.question !== "string" ||
       !Array.isArray(q.options) ||
       q.options.length !== 4 ||
-      typeof q.correctIndex !== "number"
+      typeof q.correctIndex !== "number" ||
+      typeof q.explanation !== "string" ||
+      q.explanation.trim().length === 0
     ) {
-      throw new Error("A quiz question has an invalid shape.");
+      throw new Error("A quiz question has an invalid shape or missing explanation.");
     }
   }
 }
