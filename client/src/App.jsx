@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
+import { useAuth } from './context/AuthContext.jsx';
 import Navbar from "./components/Navbar.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import SignupPage from "./pages/SignupPage.jsx";
@@ -29,6 +30,8 @@ function HomePage() {
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState("");
 
+  const { token } = useAuth();
+
   async function handleGenerate({ text, file, quizCount }) {
     setIsLoading(true);
     setLoadingStep(0);
@@ -42,6 +45,8 @@ function HomePage() {
       });
     }, 1500);
 
+    const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+
     try {
       let response;
 
@@ -51,12 +56,13 @@ function HomePage() {
         formData.append("quizCount", quizCount);
         response = await fetch(`${API_URL}/api/summarize`, {
           method: "POST",
+          headers: authHeader,
           body: formData,
         });
       } else {
         response = await fetch(`${API_URL}/api/summarize`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeader },
           body: JSON.stringify({ text, quizCount }),
         });
       }
