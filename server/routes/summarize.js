@@ -10,7 +10,7 @@ import { Summary } from "../models/Summary.js";
 const router = Router();
 
 // optionalAuth runs first so req.userId is available (or null) below.
-router.post("/summarize", upload.single("file"), async (req, res) => {
+router.post("/summarize", optionalAuth, upload.single("file"), async (req, res) => {
   try {
     const quizCount = Number(req.body?.quizCount) || 5;
     let text = req.body?.text || "";
@@ -48,7 +48,8 @@ router.post("/summarize", upload.single("file"), async (req, res) => {
           user: req.userId,
           fileName: req.file?.originalname || null,
           sourceTextPreview: text.slice(0, 300),
-          summary: result.quiz,
+          summary: result.summary,
+          quiz: result.quiz,
         });
       } catch (saveErr) {
         console.error("Failed to save summary to DB:", saveErr.message);

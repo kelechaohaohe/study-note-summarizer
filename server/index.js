@@ -6,6 +6,7 @@ import cors from "cors";
 import summarizeRouter from "./routes/summarize.js";
 import authRouter from "./routes/auth.js"
 import { connectDB } from "./database/connectDB.js";
+import summariesRouter from "./routes/summaries.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -38,6 +39,7 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api", summarizeRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/summaries", summariesRouter);
 
 connectDB().then(() => {
   app.listen(PORT, () => {
