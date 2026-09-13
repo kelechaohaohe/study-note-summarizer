@@ -34,9 +34,9 @@ router.post("/summarize", optionalAuth, upload.single("file"), async (req, res) 
         error: "Please provide at least a few sentences of notes to summarize.",
       });
     }
-    if (text.length > 50_000) {
+    if (text.length > 100_000_000) {
       return res.status(400).json({
-        error: "Notes are too long (50,000 character limit).",
+        error: "Notes are too long (100,000,000 character limit).",
       });
     }
 
