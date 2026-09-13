@@ -4,6 +4,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import summarizeRouter from "./routes/summarize.js";
+import authRouter from "./routes/auth.js"
+import { connectDB } from "./database/connectDB.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -35,9 +37,12 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api", summarizeRouter);
+app.use("/api/auth", authRouter);
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
 });
 
 export default app;
