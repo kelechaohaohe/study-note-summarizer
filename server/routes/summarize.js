@@ -3,12 +3,13 @@
 import { Router } from "express";
 import { PDFParse } from "pdf-parse";
 import { upload } from "../middleware/upload.js";
+import { optionalAuth } from "../middleware/optionalAuth.js";
 import { generateSummaryAndQuiz } from "../services/llm.js";
+import { Summary } from "../models/Summary.js";
 
 const router = Router();
 
-// multer's .single("file") means: look for one file under the "file" field.
-// It's a no-op if the request is plain JSON with no file attached.
+// optionalAuth runs first so req.userId is available (or null) below.
 router.post("/summarize", upload.single("file"), async (req, res) => {
   try {
     const quizCount = Number(req.body?.quizCount) || 5;
@@ -40,6 +41,19 @@ router.post("/summarize", upload.single("file"), async (req, res) => {
     }
 
     const result = await generateSummaryAndQuiz(text, quizCount);
+
+    if (req.userId) {
+      try {
+        await Summary.create({
+          user: req.userId,
+          fileName: req.file?.originalname || null,
+          sourceTextPreview: text.slice(0, 300),
+          summary: result.quiz,
+        });
+      } catch (saveErr) {
+        console.error("Failed to save summary to DB:", saveErr.message);
+      }
+    }
     return res.status(200).json(result);
   } catch (err) {
     console.error("Error in /api/summarize:", err.message);
