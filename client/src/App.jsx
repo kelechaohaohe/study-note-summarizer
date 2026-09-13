@@ -1,5 +1,9 @@
 import React from 'react';
 import { useState } from "react";
+import { Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import SignupPage from "./pages/SignupPage.jsx";
 import UploadForm from "./components/UploadForm.jsx";
 import SummaryPanel from "./components/SummaryPanel.jsx";
 import QuizPanel from "./components/QuizPanel.jsx";
@@ -19,8 +23,8 @@ const LOADING_STEPS = [
   "Finalizing your study package..."
 ];
 
-export default function App() {
-  const [result, setResult] = useState(null); // { summary, quiz }
+function HomePage() {
+  const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState("");
@@ -42,7 +46,6 @@ export default function App() {
       let response;
 
       if (file) {
-        // File uploads need multipart/form-data, not JSON.
         const formData = new FormData();
         formData.append("file", file);
         formData.append("quizCount", quizCount);
@@ -95,5 +98,18 @@ export default function App() {
         <QuizPanel quiz={result?.quiz} />
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+      </Routes>
+    </>
   );
 }
