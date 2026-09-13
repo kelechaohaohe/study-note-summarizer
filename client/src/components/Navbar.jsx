@@ -11,6 +11,7 @@ export default function Navbar() {
       <div className="navbar-actions">
         {user ? (
           <>
+            <Link to="/history" className="navbar-link">History</Link>
             <span className="navbar-user">{user.email}</span>
             <button type="button" className="navbar-link" onClick={logout}>
               Log out

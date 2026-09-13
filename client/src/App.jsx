@@ -8,6 +8,7 @@ import SignupPage from "./pages/SignupPage.jsx";
 import UploadForm from "./components/UploadForm.jsx";
 import SummaryPanel from "./components/SummaryPanel.jsx";
 import QuizPanel from "./components/QuizPanel.jsx";
+import HistoryPage from './pages/HistoryPage.jsx';
 
 // Reads the backend URL from an environment variable so the same build
 // works locally and in production (set VITE_API_URL when deploying).
@@ -115,6 +116,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/history" element={<HistoryPage />} />
       </Routes>
     </>
   );
