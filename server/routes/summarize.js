@@ -34,9 +34,9 @@ router.post("/summarize", optionalAuth, upload.single("file"), async (req, res) 
         error: "Please provide at least a few sentences of notes to summarize.",
       });
     }
-    if (text.length > 100_000_000) {
+    if (text.length > 100_000) {
       return res.status(400).json({
-        error: "Notes are too long (100,000,000 character limit).",
+        error: "Notes are too long (100,000 character limit).",
       });
     }
 
@@ -57,9 +57,12 @@ router.post("/summarize", optionalAuth, upload.single("file"), async (req, res) 
     }
     return res.status(200).json(result);
   } catch (err) {
-    console.error("Error in /api/summarize:", err.message);
-    return res.status(500).json({
-      error: "Something went wrong generating your summary. Please try again.",
+    console.error("Error in /api/summarize:", err.message, err.cause?.message ?? "");
+    const isBusy = err.status === 503;
+    return res.status(isBusy ? 503 : 500).json({
+      error: isBusy
+        ? err.message
+        : "Something went wrong generating your summary. Please try again.",
     });
   }
 });
