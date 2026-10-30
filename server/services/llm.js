@@ -2,6 +2,45 @@ import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+const MODELS = ["gemini-3.6-flash", "gemini-3.5-turbo"];
+const RETRYABLE = new Set([429, 500, 503]);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function callModel(prompt) {
+  let lastError;
+
+  for (const model of MODELS) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const result = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config: { 
+            responseMimeType: "application/json",
+            temperature: 0.9,
+            thinkingConfig: { thinkingLevel: "MINIMAL" },
+          },
+        });
+        return result.text.trim();
+      } catch (err) {
+        lastError = err;
+        if (!RETRYABLE.has(err.status)) {
+          throw err;
+        }
+        console.warn(`${model} returned ${err.status}, retry ${attempt + 1}/3`);
+        
+        if (attempt < 2) {
+          await sleep(1000 * 2 ** attempt + Math.random() * 250); 
+        }
+      }
+    }
+  }
+  const errorMessage = new Error("The AI service is busy. Please try again in a minute");
+  errorMessage.status = 503;
+  errorMessage.cause = lastError;
+  throw errorMessage;
+}
+
 /**
  * Builds the prompt that instructs the model exactly how to behave.
  * Being explicit about the JSON shape is what makes the response reliable
@@ -46,17 +85,7 @@ export async function generateSummaryAndQuiz(text, quizCount = 5) {
   const prompt = buildPrompt(text, quizCount);
 
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const result = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
-      contents: prompt,
-      config: { 
-        responseMimeType: "application/json",
-        temperature: 0.9,
-        thinkingConfig: { thinkingLevel: "MINIMAL" },
-      },
-    });
-
-    const rawText = result.text.trim();
+    const rawText = (await callModel(prompt)).trim();
 
     try {
       const parsed = JSON.parse(stripCodeFences(rawText));
@@ -96,5 +125,5 @@ function validateShape(parsed, quizCount) {
     ) {
       throw new Error("A quiz question has an invalid shape or missing explanation.");
     }
-  }
+ }
 }
