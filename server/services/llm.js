@@ -2,43 +2,46 @@ import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const MODELS = ["gemini-3.6-flash", "gemini-3.5-turbo"];
+const MODELS = [
+  { name: "gemini-3.6-flash",      thinking: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-3.5-flash-lite", thinking: { thinkingLevel: "MINIMAL" } },
+  { name: "gemini-2.5-flash",      thinking: { thinkingBudget: 0 } },
+];
+const MAX_ATTEMPTS = 3;
+
 const RETRYABLE = new Set([429, 500, 503]);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function callModel(prompt) {
-  let lastError;
+  let lastErr;
 
-  for (const model of MODELS) {
-    for (let attempt = 1; attempt <= 3; attempt++) {
+  for (const { name, thinking } of MODELS) {
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
         const result = await ai.models.generateContent({
-          model,
+          model: name,
           contents: prompt,
-          config: { 
+          config: {
             responseMimeType: "application/json",
             temperature: 0.9,
-            thinkingConfig: { thinkingLevel: "MINIMAL" },
+            thinkingConfig: thinking,
           },
         });
-        return result.text.trim();
+        console.log(`Success with ${name}`);
+        return result.text ?? "";
       } catch (err) {
-        lastError = err;
-        if (!RETRYABLE.has(err.status)) {
-          throw err;
-        }
-        console.warn(`${model} returned ${err.status}, retry ${attempt + 1}/3`);
-        
-        if (attempt < 2) {
-          await sleep(1000 * 2 ** attempt + Math.random() * 250); 
-        }
+        lastErr = err;
+        if (!RETRYABLE.has(err.status)) throw err;
+        console.warn(`${name} returned ${err.status}, retry ${attempt + 1}/${MAX_ATTEMPTS}`);
+        if (attempt < MAX_ATTEMPTS - 1) await sleep(1000 * 2 ** attempt + Math.random() * 250);
       }
     }
   }
-  const errorMessage = new Error("The AI service is busy. Please try again in a minute");
-  errorMessage.status = 503;
-  errorMessage.cause = lastError;
-  throw errorMessage;
+
+  const e = new Error("The AI service is busy. Please try again in a minute.");
+  e.status = 503;
+  e.cause = lastErr;
+  throw e;
 }
 
 /**
